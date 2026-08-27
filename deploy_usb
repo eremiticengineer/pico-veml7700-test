@@ -1,0 +1,5 @@
+# pico
+#cp build/freertostest.elf /media/pi/RPI-RP2
+
+# pico2
+cp build/freertostest.elf /media/pi/RP2350
