@@ -36,6 +36,7 @@ target_include_directories(${PROJECT} PUBLIC
 
 target_link_libraries(${PROJECT}
     pico_stdlib
+    hardware_i2c
     FreeRTOS-Kernel-Heap4
 )
 
