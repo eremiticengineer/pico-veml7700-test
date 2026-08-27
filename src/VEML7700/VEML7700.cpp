@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "VEML7700.h"
 #include "hardware/i2c.h"
 #include "pico/stdlib.h"
@@ -10,17 +12,23 @@ VEML7700::VEML7700(i2c_inst_t *i2c_inst, uint8_t address, uint sda, uint scl)
     : i2c(i2c_inst), i2c_address(address), sda_pin(sda), scl_pin(scl) {}
 
 bool VEML7700::begin() {
-    // i2c_init(i2c, 100 * 1000); // 100 kHz
-    // gpio_set_function(sda_pin, GPIO_FUNC_I2C);
-    // gpio_set_function(scl_pin, GPIO_FUNC_I2C);
-    // gpio_pull_up(sda_pin);
-    // gpio_pull_up(scl_pin);
+    uint16_t config = 0x0000;
 
-    configure();
+    if (!writeRegister(VEML7700_ALS_CONF, config)) {
+        printf("VEML7700 config write failed\n");
+        return false;
+    }
 
-    // Read from sensor to check it's responding
-    uint16_t dummy;
-    return readRegister(VEML7700_ALS_CONF, dummy);
+    uint16_t readback;
+
+    if (!readRegister(VEML7700_ALS_CONF, readback)) {
+        printf("VEML7700 config read failed\n");
+        return false;
+    }
+
+    printf("VEML7700 config = 0x%04X\n", readback);
+
+    return true;
 }
 
 // void VEML7700::configure() {
@@ -62,23 +70,57 @@ bool VEML7700::readLux(float &lux) {
 }
 
 bool VEML7700::writeRegister(uint8_t reg, uint16_t value) {
-    uint8_t buf[3];
-    buf[0] = reg;
-    buf[1] = value & 0xFF;
-    buf[2] = value >> 8;
-    return i2c_write_blocking(i2c, i2c_address, buf, 3, false) == 3;
+    uint8_t buf[3] = {
+        reg,
+        static_cast<uint8_t>(value & 0xFF),
+        static_cast<uint8_t>(value >> 8)
+    };
+
+    int result = i2c_write_blocking(
+        i2c,
+        i2c_address,
+        buf,
+        3,
+        false
+    );
+
+    printf("VEML write: %d\n", result);
+
+    return result == 3;
 }
 
 bool VEML7700::readRegister(uint8_t reg, uint16_t &value) {
-    if (i2c_write_blocking(i2c, i2c_address, &reg, 1, true) != 1) {
+    int result = i2c_write_blocking(
+        i2c,
+        i2c_address,
+        &reg,
+        1,
+        true
+    );
+
+    printf("VEML register select: %d\n", result);
+
+    if (result != 1) {
         return false;
     }
 
     uint8_t buf[2];
-    if (i2c_read_blocking(i2c, i2c_address, buf, 2, false) != 2) {
+
+    result = i2c_read_blocking(
+        i2c,
+        i2c_address,
+        buf,
+        2,
+        false
+    );
+
+    printf("VEML read: %d\n", result);
+
+    if (result != 2) {
         return false;
     }
 
-    value = buf[0] | (buf[1] << 8);
+    value = buf[0] | (static_cast<uint16_t>(buf[1]) << 8);
+
     return true;
 }
