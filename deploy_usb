@@ -1,5 +1,5 @@
 # pico
-#cp build/freertostest.elf /media/pi/RPI-RP2
+#cp build/picoveml7700test.elf /media/pi/RPI-RP2
 
 # pico2
-cp build/freertostest.elf /media/pi/RP2350
+cp build/picoveml7700test.elf /media/pi/RP2350
