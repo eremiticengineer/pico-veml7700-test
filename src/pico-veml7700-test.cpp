@@ -25,7 +25,7 @@ namespace veml770_config {
     inline constexpr uint SCL = 9;
 }
 
-void veml7700_task(void *params) {
+void veml7700_task(void *pvParameters) {
     VEML7700 *pVEML7700 = static_cast<VEML7700 *>(pvParameters);
 
     if (xSemaphoreTake(i2c_mutex, portMAX_DELAY)) {
