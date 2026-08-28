@@ -26,13 +26,10 @@ namespace veml770_config {
 }
 
 void veml7700_task(void *params) {
-    VEML7700 sensor(veml770_config::I2C_INSTANCE,
-                    veml770_config::ADDRESS,
-                    veml770_config::SDA,
-                    veml770_config::SCL);
+    VEML7700 *pVEML7700 = static_cast<VEML7700 *>(pvParameters);
 
     if (xSemaphoreTake(i2c_mutex, portMAX_DELAY)) {
-      if (!sensor.begin()) {
+      if (!pVEML7700->begin()) {
           xSemaphoreGive(i2c_mutex);
           printf("VEML7700 init failed\n");
           vTaskDelete(NULL);
@@ -42,7 +39,7 @@ void veml7700_task(void *params) {
 
     while (true) {
         if (xSemaphoreTake(i2c_mutex, portMAX_DELAY)) {
-          if (sensor.readLux(luxValue)) {
+          if (pVEML7700->readLux(luxValue)) {
               printf("Lux: %.2f\n", luxValue);
           }
           else {
@@ -68,7 +65,8 @@ int main( void )
 
     i2c_mutex = xSemaphoreCreateMutex();
 
-    BaseType_t result = xTaskCreate(veml7700_task, "VEML7700Task", 1024, nullptr, VEML7700_TASK_PRIORITY, nullptr);
+    VEML7700 veml770(veml770_config::I2C_INSTANCE, veml770_config::ADDRESS);
+    BaseType_t result = xTaskCreate(veml7700_task, "VEML7700Task", 512, (void*)&veml770, VEML7700_TASK_PRIORITY, nullptr);
 
     printf("xTaskCreate: %ld\n", result);
 
