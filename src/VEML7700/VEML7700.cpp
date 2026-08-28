@@ -8,7 +8,7 @@
 #define VEML7700_ALS_CONF    0x00
 #define VEML7700_ALS_DATA    0x04
 
-VEML7700::VEML7700(i2c_inst_t *i2c_inst, uint8_t address, uint sda, uint scl)
+VEML7700::VEML7700(i2c_inst_t *i2c_inst, uint8_t address)
     : i2c(i2c_inst), i2c_address(address) {}
 
 bool VEML7700::begin() {
