@@ -1,46 +1,97 @@
 cmake_minimum_required(VERSION 3.13)
 
-set(PROJECT picoveml7700test)
+set(LIBRARY pico_veml7700)
 
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+# ---------------------------------------------------------
+# Are we being built directly or as a submodule?
+# ---------------------------------------------------------
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(PICO_VEML7700_STANDALONE TRUE)
+else()
+    set(PICO_VEML7700_STANDALONE FALSE)
+endif()
 
-include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+# ---------------------------------------------------------
+# Standalone project setup
+# ---------------------------------------------------------
+if(PICO_VEML7700_STANDALONE)
+    set(PROJECT pico_veml7700_test)
 
-project(${PROJECT} C CXX ASM)
+    if(DEVICE STREQUAL "seeed_xiao_rp2040")
+        set(PICO_BOARD seeed_xiao_rp2040 CACHE STRING "Board type" FORCE)
+    elseif(DEVICE STREQUAL "pico")
+        set(PICO_BOARD pico CACHE STRING "Board type" FORCE)
+    elseif(DEVICE STREQUAL "pico2")
+        set(PICO_BOARD pico2 CACHE STRING "Board type" FORCE)
+    else()
+        message(FATAL_ERROR
+            "Unknown DEVICE='${DEVICE}'. Use pico, pico2 or seeed_xiao_rp2040."
+        )
+    endif()
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 23)
+    include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
-pico_sdk_init()
+    project(${LIBRARY} C CXX ASM)
 
-message(STATUS "PICO_PLATFORM=${PICO_PLATFORM}")
+    set(CMAKE_C_STANDARD 11)
+    set(CMAKE_CXX_STANDARD 23)
 
-set(FREERTOS_KERNEL_PATH
-    ${CMAKE_CURRENT_LIST_DIR}/lib/FreeRTOS-Kernel
+    pico_sdk_init()
+
+    message(STATUS "DEVICE=${DEVICE}")
+    message(STATUS "PICO_BOARD=${PICO_BOARD}")
+    message(STATUS "PICO_PLATFORM=${PICO_PLATFORM}")
+endif()
+
+# ---------------------------------------------------------
+# Library
+# ---------------------------------------------------------
+add_library(${LIBRARY}
+    src/VEML7700.cpp
 )
 
-include(
-    ${FREERTOS_KERNEL_PATH}/portable/ThirdParty/GCC/RP2040/FreeRTOS_Kernel_import.cmake
+target_include_directories(${LIBRARY} PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/include
+    ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
-add_executable(${PROJECT}
-  src/pico-veml7700-test.cpp
-  src/VEML7700/VEML7700.h
-  src/VEML7700/VEML7700.cpp
-)
-
-target_include_directories(${PROJECT} PUBLIC
-  include/
-  src/VEML7700
-)
-
-target_link_libraries(${PROJECT}
+target_link_libraries(${LIBRARY} PUBLIC
     pico_stdlib
     hardware_i2c
-    FreeRTOS-Kernel-Heap4
 )
 
-pico_enable_stdio_usb(${PROJECT} 1)
-pico_enable_stdio_uart(${PROJECT} 1)
+# ---------------------------------------------------------
+# Standalone examples
+# ---------------------------------------------------------
+if(PICO_VEML7700_STANDALONE)
 
-pico_add_extra_outputs(${PROJECT})
+    set(FREERTOS_KERNEL_PATH
+        ${CMAKE_CURRENT_LIST_DIR}/lib/FreeRTOS-Kernel
+    )
+
+    include(
+        ${FREERTOS_KERNEL_PATH}/portable/ThirdParty/GCC/RP2040/FreeRTOS_Kernel_import.cmake
+    )
+
+    add_executable(${PROJECT}
+        examples/pico-veml7700-test.cpp
+    )
+
+    target_include_directories(${PROJECT} PUBLIC
+        include/
+    )
+
+    target_compile_definitions(${PROJECT} PRIVATE
+        DEVICE_${DEVICE}
+    )
+
+    target_link_libraries(${PROJECT}
+        pico_stdlib
+        FreeRTOS-Kernel-Heap4
+        ${LIBRARY}
+    )
+
+    pico_enable_stdio_usb(${PROJECT} 1)
+    pico_enable_stdio_uart(${PROJECT} 0)
+    pico_add_extra_outputs(${PROJECT})
+endif()
